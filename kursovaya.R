@@ -6,12 +6,11 @@ library(tidyverse)
 library(forecast)
 library(tseries)
 
-# Загрузка данных
 data <- read.csv("energyProduction.csv", sep=";", fileEncoding = "Latin1", stringsAsFactors = FALSE)
 colnames(data) <- c("COUNTRY", "CODE_TIME", "TIME", "YEAR", "MONTH", "MONTH_NAME", "PRODUCT", "VALUE", "DISPLAY_ORDER", "yearToDate", "previousYearToDate", "share")
 data$VALUE <- as.numeric(data$VALUE)
 
-#Расчёт годового производства
+#расчет годового производства
 annual_data <- data %>%
   group_by(COUNTRY, PRODUCT, YEAR) %>%
   summarize(ANNUAL_VALUE = sum(VALUE, na.rm = TRUE)) %>%
@@ -21,14 +20,13 @@ total_production_by_country <- annual_data %>%
   group_by(COUNTRY) %>%
   summarize(TOTAL_PRODUCTION = sum(ANNUAL_VALUE))
 
-# Топ стран по производству электроэнергии
+#топ стран по производству электроэнергии
 top_countries <- total_production_by_country %>%
   arrange(desc(TOTAL_PRODUCTION))
 
 
 top_countries_10 <- top_countries[4:10, ]
 
-# Построение столбчатой диаграммы для первых 10 стран
 barplot(top_countries_10$TOTAL_PRODUCTION, 
         names.arg = top_countries_10$COUNTRY,
         main = "Топ стран по производству электроэнергии",
@@ -62,21 +60,21 @@ axis(side = 1, at = seq(min(data_ts$TIME), max(data_ts$TIME), by = "years"),
 
 ts_data <- ts(data_ts$VALUE, start = c(year(min(data_ts$TIME)), month(min(data_ts$TIME))), frequency = 12)
 
-# Тест Льюнга-Бокса на определение тренда
+# тест Льюнга-Бокса
 ljung_box_test <- Box.test(ts_data, lag = 12, type = "Ljung-Box")
 ljung_box_test
 
-# Тест Дики-Фуллера на стационарность
+# тест Дики-Фуллераь
 adf_test_result <- adf.test(ts_data)
 adf_test_result
 
 
-# Декомпозиция временного ряда
+
 decomposed_ts <- decompose(ts_data)
 plot(decomposed_ts)
 
 
-# Вычисление уравнения тренда
+# уравнение тренда
 trend_model <- tslm(ts_data ~ trend)
 
 summary(trend_model)
@@ -87,7 +85,7 @@ slope <- coef(trend_model)["trend"]
 plot(ts_data, main = "График производства электроэнергии в США с уравнением тренда", xlab = "Год", ylab = "Производство (GWh)")
 lines(fitted(trend_model), col = "red")  
 
-# Прогноз на 5 лет
+# прогноз на 5 лет
 forecast_model <- auto.arima(ts_data, d = 0)
 forecast_values <- forecast(forecast_model, h = 12*5)
 summary(forecast_model)
@@ -116,7 +114,6 @@ plot(us_annual_data$YEAR, us_annual_data$ANNUAL_VALUE, type = "l", col = "blue",
      ylim = c(min(sum_by_year$Total_Lo_95), max(sum_by_year$Total_Hi_95)), 
      xlab = "Год", ylab = "Производство (GWh)", main = "Годовое производство электроэнергии в США")
 
-# Добавляем линии для прогнозируемых значений и доверительных интервалов
 lines(as.integer(sum_by_year$Year), sum_by_year$Total_Point_Forecast, col = "red", lty = "dashed", lwd = 2)
 lines(as.integer(sum_by_year$Year), sum_by_year$Total_Lo_80, col = "green", lty = "dotted", lwd = 2)
 lines(as.integer(sum_by_year$Year), sum_by_year$Total_Hi_80, col = "green", lty = "dotted", lwd = 2)
@@ -131,7 +128,7 @@ axis(1, at = seq(min(us_annual_data$YEAR), max(as.integer(sum_by_year$Year)), by
 grid()
 
 
-# Для Японии
+# то же самое для Японии
 
 jp_data <- data %>%
   filter(COUNTRY == "Japan" & PRODUCT == "Electricity supplied") %>%
@@ -139,7 +136,6 @@ jp_data <- data %>%
 
 ts_jp_data <- ts(jp_data$VALUE, start = c(year(min(jp_data$TIME)), month(min(jp_data$TIME))), frequency = 12)
 
-# Построение графика временного ряда
 plot(ts_jp_data, main = "Ежемесячное производство электроэнергии В Японии",
      ylab = "Производство (GWh)", xlab = "Год")
 
@@ -147,11 +143,9 @@ jp_annual_data <- annual_data %>%
   filter(COUNTRY == "Japan" & PRODUCT == "Electricity supplied") %>%
   select(YEAR, ANNUAL_VALUE)
 
-# Декомпозиция временного ряда
 decomposed_jp_ts <- decompose(ts_jp_data)
 plot(decomposed_jp_ts)
 
-# Вычисление уравнения тренда
 jp_trend_model <- tslm(ts_jp_data ~ trend)
 
 summary(jp_trend_model)
@@ -161,23 +155,17 @@ slope <- coef(jp_trend_model)["trend"]
 
 plot(ts_jp_data, main = "График прозиводства электроэнергии в Японии с линией тренда", xlab = "Год", ylab = "Производство (GWh)")
 lines(fitted(jp_trend_model), col = "red")
-
-
-# Тест Дики-Фуллера на стационарность
 adf_test_jp_result <- adf.test(ts_jp_data)
 adf_test_jp_result
 
-# Тест Льюнга-Бокса на сезонность
 ljung_box_test <- Box.test(ts_jp_data, lag = 12, type = "Ljung-Box")
 ljung_box_test
 
-# Прозноз
 jp_forecast_model <- auto.arima(ts_jp_data, d = 0)
 jp_forecast_values <- forecast(jp_forecast_model, h = 12*5) # Прогноз на 5 лет вперед
 summary(jp_forecast_model)
 
 jp_forecast_values
-
 jp_forecast_data <- as.data.frame(jp_forecast_values)
 jp_forecast_data$Year <- substr(rownames(jp_forecast_data), 5, 8)
 
@@ -214,8 +202,7 @@ grid()
 
 
 
-# Для Индии
-
+# то же самое лдя Индии
 ind_data <- data %>%
   filter(COUNTRY == "India" & PRODUCT == "Electricity supplied") %>%
   select(TIME, VALUE)
@@ -225,11 +212,9 @@ ts_ind_data <- ts(ind_data$VALUE, start = c(year(min(ind_data$TIME)), month(min(
 plot(ts_ind_data, main = "Ежемесячное производство электроэнергии в Индии",
      ylab = "Производство (GWh)", xlab = "Год")
 
-# Декомпозиция временного ряда
 decomposed_ind_ts <- decompose(ts_ind_data)
 plot(decomposed_ind_ts)
 
-# Уравнение тренда
 ind_trend_model <- tslm(ts_ind_data ~ trend)
 summary(ind_trend_model)
 
@@ -239,11 +224,9 @@ slope <- coef(ind_trend_model)["trend"]
 plot(ts_ind_data, main = "График с уравнением тренда", xlab = "Год", ylab = "Производство (GWh)")
 lines(fitted(ind_trend_model), col = "red")  
 
-# Тест Дики-Фуллера на стационарность
 adf_test_ind_result <- adf.test(ts_ind_data)
 adf_test_ind_result
 
-# Тест Льюнга-Бокса на сезонность
 ljung_box_test <- Box.test(ts_ind_data, lag = 12, type = "Ljung-Box")
 ljung_box_test
 
